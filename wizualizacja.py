@@ -1,9 +1,13 @@
 import time
 import pygame
+import random 
+
+random.seed(1234)
 levels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 timer = True
-time_step = 0.2
-# założenie, że winda jeździ tylko od 0 piętra n > 0 lub od piętra n > 0 do 0
+time_step = 0.5
+current = 0
+debug = False
 
 # Pygame setup
 pygame.init()
@@ -34,44 +38,74 @@ def draw_elevator(position, desired):
 
 
 
-def go_up(current, start, levels, desired):
+def go_up(start, levels, desired):
+    global current 
+    if debug:
+        print(f"Jazda w góre, Winda jest na piętrze {current}, pasażer zaczyna jazdę z piętra {start}, a cel to {desired}")
+        print("*"*20)
     # jeżeli winda jest za nisko to jedzie do góry
     if start > current:
-        current = go_up(current, current, levels, start)
+        current = go_up(current, levels, start)
     elif start < current:
-        current = go_down(current, current, levels, start)
+        current = go_down(current, levels, start)
     # funkcja opisująca ruch windy w górę
-    print("Jazda w góre")
-    print("*"*20)
+   
     for i in range(start, desired + 1):
-        print('Winda jest na piętrze', levels[i])
+        if debug:
+            print('Winda jest na piętrze', levels[i])
         draw_elevator(levels[i], desired)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-    print("*"*20)
+                
+    if debug:
+        print("*"*20)
+    time.sleep(3)
     return desired
 
-def go_down(current, start, levels, desired=0):
+def go_down(start, levels, desired=0):
+    global current
+    if debug:
+        print(f"Jazda w dół, Winda jest na piętrze {current}, pasażer zaczyna jazdę z piętra {start}, a cel to {desired}")
+        print("*"*20)
     # jeżeli winda jest za nisko to jedzie do góry
     if start > current:
-        current = go_up(current, current, levels, start)
+        current = go_up(current, levels, start)
     elif start < current:
-        current = go_down(current, current, levels, start)
+        current = go_down(current, levels, start)
     # funkcja opisująca ruch windy w dół
-    print("Jazda w dół")
-    print("*"*20)
+    
     for i in range(start, desired - 1, -1):
-        print('Winda jest na piętrze', levels[i])
+        if debug:
+            print('Winda jest na piętrze', levels[i])
         draw_elevator(levels[i], desired)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-    print("*"*20)
+    if debug:
+        print("*"*20)
+    time.sleep(3)
     return desired
 
-current = 0
-current = go_up(current, 0, levels, 5)
-current = go_down(current, 10, levels)
+for i in range(10):
+    start = random.choice(levels)
+    desired = random.choice(levels)
+    while desired == start:
+        desired = random.choice(levels)
+    print(f"Start: {start}Cel: {desired}")
+    if start < desired:
+        current = go_up(start, levels, desired)
+    elif start > desired:
+        current = go_down(start, levels, desired)
+    time.sleep(1)
+
+# current = 0
+# current = go_up(current, 0, levels, 5)
+# current = go_down(current, 10, levels)
 pygame.quit()
 
+# TODO
+# Asynchroniczny ruch windy względem requestów od pasażerów
+# Requesty w ustalonym typie danych ( stos / kolejka / lista)
+# Wielu pasażerów jednocześnie
+# Limit pasażerów
