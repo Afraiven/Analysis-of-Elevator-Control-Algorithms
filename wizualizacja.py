@@ -109,3 +109,63 @@ pygame.quit()
 # Requesty w ustalonym typie danych ( stos / kolejka / lista)
 # Wielu pasażerów jednocześnie
 # Limit pasażerów
+
+
+# import threading
+# import time
+
+
+# class Pasazer():
+#     def __init__(self, start) -> None:
+#         self.start = start
+
+#     # planuje jechać w dół z pietra start
+#     def call_down(self):
+#         # jeśli jedzie i ma po drodze to zatrzymaj
+#         # jesli jedzie i nie ma po drodze to dodaj na koniec trasy
+#         # jesli stoi to dodaj do trasy
+#         global poziom
+#         global trasa
+
+#     # planuje jechać w górę z pietra start
+#     def call_up(self):
+#         # jeśli jedzie i ma po drodze to zatrzymaj
+#         # jesli jedzie i nie ma po drodze to dodaj na koniec trasy
+#         # jesli stoi to dodaj do trasy
+#         global poziom
+#         global trasa
+
+#     # pasażer w windzie wybiera cel
+#     def jedz_na(self, cel):
+#         global requesty
+#         requesty.append([self.start, cel])
+
+
+# class Winda():
+#     def __init__(self):
+#         self.poziom = 0
+#         self.trasa = []
+#         self.requesty = []
+#         self.stop = False
+#         self.going_up = False
+
+#     def generuj_trasa(self):
+#         # generuje trasę na podstawie requestów
+        
+
+#     def jedz(self):
+#         while len(trasa) > 0:
+#             self.fix_trasa()
+            
+
+# poziom = 0
+# trasa = []
+# winda = Winda()
+# filip = Pasazer(8)
+# filip.call_down()
+# filip.jedz_na(0)
+# kuba = Pasazer(7)
+# kuba.call_down()
+# kuba.jedz_na(0)
+# winda.jedz()
+
