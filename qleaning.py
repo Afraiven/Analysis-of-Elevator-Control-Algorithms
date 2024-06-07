@@ -12,7 +12,7 @@ class Winda(gym.Env):
         super(Winda, self).__init__()
         
         self.steps_done = 0
-        self.num_floors = 11
+        self.num_floors = 5
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Dict({
             "current_floor": spaces.Discrete(self.num_floors),
@@ -34,53 +34,58 @@ class Winda(gym.Env):
         if action == 0:  # Move up
             if current_floor < self.num_floors - 1:
                 if doors_open == 1:
-                    reward = -1
+                    reward -= 20
                 else:
                     current_floor += 1
             else:
-                reward -= 2
+                reward -= 30
         elif action == 1:  # Move down
             if current_floor > 0:
                 if doors_open == 1:
-                    reward = -1
+                    reward -= 20
                 else:
                     current_floor -= 1
             else:
-                reward -= 2
+                reward -= 30
         elif action == 2:  # Open doors
             if doors_open == 0:
                 doors_open = 1
                 if waiting_floors[current_floor]:
-                    reward += 2
+                    reward += 1
             else:
-                reward -= 1
+                reward -= 2
+            reward -= 1
         elif action == 3:  # Close doors
             if doors_open == 1:
                 doors_open = 0
             else:
-                reward -= 1
+                reward -= 2
+            reward -= 1
         for wait in waiting_floors:
             if wait == 1:
-                reward -= 0.2
+                reward -= 0.5
         if doors_open and waiting_floors[current_floor]:
             reward += 50  # Nagroda za otwarcie drzwi, gdy ktoś czeka
             waiting_floors[current_floor] = 0  # Usuwanie pasażera z listy oczekujących
-
+        if (self.last_action == 3 and action == 2):  # Assuming 2 and 3 are open/close doors
+            reward -= 100  # Penalize repeated door operations
+         
+        self.last_action = action  # Store the last action taken
         self.state = {
             "current_floor": current_floor,
             "doors_open": doors_open,
             "waiting_floors": waiting_floors
         }
 
-        # if self.steps_done >= 100 or np.sum(waiting_floors) == 0:
-        if np.sum(waiting_floors) == 0:
+        if np.sum(waiting_floors) == 0 or self.steps_done > 1000:
             reward /= self.normalizer
             done = True
-        # else:
-        #     self.new_passenger()
+        else:
+            self.new_passenger()
         self.steps_done += 1
         return self.state, reward, done, {}
-
+    def set_last_action_init(self, action):
+        self.last_action = action
     def new_passenger(self):
         if random.random() < 0.01:
             floor = random.randint(0, self.num_floors - 1)
@@ -89,7 +94,7 @@ class Winda(gym.Env):
     def reset(self):
         x = np.random.randint(0, 2, self.num_floors)
         self.state = {
-            "current_floor": 0,
+            "current_floor": random.randint(0, self.num_floors - 1),
             "doors_open": 0,
             "waiting_floors": x
         }
@@ -107,15 +112,18 @@ class Winda(gym.Env):
                 waiting_floors_list_normalized.append([1])
             else:
                 waiting_floors_list_normalized.append([])
-        if len(results) > 0 and (len(results) % 450 == 0 or len(results) % 490 == 0):
-            time_step = 0.05
+        if len(results) > 0 and (len(results) > 10400):
+            time_step = 0.3
         else:
-            time_step = 0.05
-        draw_elevator(self.state['current_floor'], waiting_floors_list_normalized, time_step)
+            time_step = 0
+       
         output = f"Winda znajduje się na piętrze {self.state['current_floor']}. "
         output += "Drzwi są otwarte. " if self.state['doors_open'] else "Drzwi są zamknięte. "
         output += f"Pasażerowie czekają na piętrach: {waiting_floors_list}."
-        print(output)
+        if len(results) > 10400:
+            draw_elevator(self.state['current_floor'], waiting_floors_list_normalized, time_step)
+            print(output)
+            print(action, reward, epsilon)
 
     def close(self):
         pass
@@ -141,30 +149,35 @@ class Winda(gym.Env):
             state_idx = self.state_to_index(state)
             return np.argmax(self.Q[state_idx])  # najlepsza znana akcja
 
-epsilon = 0.01
-alpha = 0.3
-gamma = 0.3
+epsilon = 1
+alpha = 0.2
+gamma = 0.7
 env = Winda()
-env.load_Q('q_table.pkl')  # Załaduj wcześniej zapisaną tabelę Q
+# env.load_Q('q_table.pkl')  # Załaduj wcześniej zapisaną tabelę Q
 results = []
-ile_epizodow = 500
-
+ile_epizodow = 10405
+epsilony = []
 for i in range(ile_epizodow):
     state = env.reset()
     done = False
     episode_rewards = 0
-    print("*"*30,f"Epizod {i + 1}","*"*30)
-    print(f"Epsilon: {epsilon:.2f}")
+    # print("*"*30,f"Epizod {i + 1}","*"*30)
+    if i % 100 == 0:
+        print(i)
+    # print(f"Epsilon: {epsilon:.2f}")
     while not done:
         action = env.choose_action(state, epsilon)
+        if i == 0:
+            env.set_last_action_init(action)
         next_state, reward, done, info = env.step(action)
         env.update_Q(state, action, reward, next_state, alpha, gamma)
         state = next_state
         episode_rewards += reward
         env.render()
-    print(f"Nagrody z epizodu: {episode_rewards}")
+    # print(f"Nagrody z epizodu: {episode_rewards}")
     results.append(episode_rewards)
-    epsilon *= 0.995 
+    epsilon *= 0.9999
+    epsilony.append(epsilon)
 
 env.close()
 
@@ -181,4 +194,11 @@ plt.plot(results)
 plt.xlabel('Epizod')
 plt.ylabel('Suma nagród')
 plt.title('Postęp uczenia się agenta w każdym epizodzie')
+plt.show()
+
+# Tworzenie wykresu
+plt.plot(epsilony)
+plt.xlabel('Epsilon')
+plt.ylabel('Epsilony')
+plt.title('Epsilony')
 plt.show()
