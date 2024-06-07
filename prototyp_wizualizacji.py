@@ -1,9 +1,9 @@
 import time
 import pygame
 import os
+import sys
 
 
-time_step = 0
 os.environ['SDL_VIDEO_WINDOW_POS'] = '100,100'
 
 # Pygame setup
@@ -21,12 +21,15 @@ def draw_multiline_text(surface, text, pos, font, color):
         surface.blit(line_surface, (x, y))
         y += line_spacing
 
-def draw_elevator(position, desired, osoby_na_piętrach, osoby_w_windzie):
+def draw_elevator(position, osoby_na_piętrach, time_step):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: 
+             sys.exit(0)
     screen.fill((0, 0, 0))
     floor_height = 50
     elevator_y = 600 - (position * floor_height) - floor_height
     pygame.draw.rect(screen, (255, 255, 255), (100, elevator_y, 100, 50))
-    multi_line_text = f"Piętro: {position}\nCel: {desired}\nIlosc: {osoby_w_windzie}"
+    multi_line_text = f"Piętro: {position}"
     text_x = 100
     text_y = elevator_y + 5
     draw_multiline_text(screen, multi_line_text, (text_x, text_y), font, (0, 128, 0))
