@@ -21,7 +21,7 @@ class Winda:
                 self.cykl_celow[i][pietro] = 0
         self.aktualny_etap = 0
         self.aktualny_poziom = 0
-        self.kolejka = [[],[], [], []]
+        self.kolejka = [[],[], [], [], [], []]
 
     def up_arrow(self, poziom):
         if self.aktualny_etap == 0:
@@ -48,18 +48,19 @@ class Winda:
         return e
 
     # panel wewnętrzny windy
-    def panel(self):
-        print("Panel wewnętrzny windy")
-        if self.aktualny_etap == 0:
-            floor = self.aktualny_poziom + 1
+    def panel(self, kierunek, pietro, e):
+        # w górę
+        if kierunek%2 == 0:
+            floor = pietro + 1
             ceiling = 10
+        # w dół
         else:
             floor = 0
-            ceiling = self.aktualny_poziom - 1
+            ceiling = pietro - 1
         cel = random.randint(floor, ceiling)
         print(f"Pasażer chce jechać na piętro {cel}")
         # pasażer wybiera cel
-        self.cykl_celow[0][cel] = 1
+        self.cykl_celow[0][cel] = 2+e
         
     def generator_kolejki(self):
         for i in range(len(self.cykl)):
@@ -70,27 +71,26 @@ class Winda:
                     else:
                         e = self.up_arrow(pietro)
                     # Zlecenie na piętro {pietro} zostanie zrealizowane na etapie {e}
-                    self.panel()
+                    self.panel(e + self.aktualny_etap, pietro, e)
                     self.kolejka[e].append(pietro)
-                    self.kolejka[e] = sorted(self.kolejka[e])
                     # kasuj zgłoszenie
                     self.cykl[i][pietro] = 0
         for i in range(len(self.cykl_celow)):
             for pietro in self.cykl_celow[i]:
                 if self.cykl_celow[i][pietro] > 0:
-                    if i == 1:
-                        e = self.down_arrow(pietro)
-                    else:
-                        e = self.up_arrow(pietro)
+                    e = self.cykl_celow[i][pietro] - 2
                     self.kolejka[e].append(pietro)
-                    self.kolejka[e] = sorted(self.kolejka[e])
                     # kasuj zgłoszenie
                     self.cykl_celow[i][pietro] = 0
-                
-        print(self.kolejka)
+        for i in range(len(self.kolejka)):
+            if (i + self.aktualny_etap) % 2 == 0:
+                self.kolejka[i].sort()
+            else:
+                self.kolejka[i].sort(reverse=True)
+        # print(self.kolejka)
 
     def ruch(self):
-        global osoby_na_pietrachlej
+        global osoby_na_pietrach
         self.generator_kolejki()
         while len(self.kolejka[0]) > 0:
             self.generator_kolejki()
@@ -125,8 +125,10 @@ Pasazer(0)
 Pasazer(0)
 Pasazer(0)
 Pasazer(1)
+Pasazer(1)
+Pasazer(1)
 winda = Winda(cykl)
-for i in range(10):
+while True:
     winda.ruch()
 
 ## CZEMU NIE ZABRAŁ 2 i kto jechal na dół
