@@ -1,81 +1,132 @@
 import time
+import random
+from srodowisko import draw_elevator
+import copy
 
-# cykl 0 to jazda w górę
-cykl0 = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
-# cykl 1 to jazda w dół
-cykl1 = {10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
-# etap to dwa cykle
-etap = [cykl0, cykl1]
+# etap 0 to jazda w górę
+etap0 = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
+# etap 1 to jazda w dół
+etap1 = {10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
+# cykl to dwa etapy
+cykl = [etap0, etap1]
+random.seed(41)
+osoby_na_pietrach = [[], [], [], [], [], [], [], [], [], [], []]
 
 class Winda:
-    def __init__(self, etap):
-        self.etap = etap
-        self.aktualny_cykl = 0
+    def __init__(self, cykl):
+        self.cykl = cykl
+        self.cykl_celow = copy.deepcopy(cykl)
+        for i in range(len(self.cykl_celow)):
+            for pietro in self.cykl_celow[i]:
+                self.cykl_celow[i][pietro] = 0
+        self.aktualny_etap = 0
         self.aktualny_poziom = 0
         self.kolejka = [[],[], [], []]
 
     def up_arrow(self, poziom):
-        if self.aktualny_cykl == 0:
+        if self.aktualny_etap == 0:
             if self.aktualny_poziom <= poziom:
                 # zlecenie odbędzie się w aktualnym etapie
-                c = 0
+                e = 0
             else:
                 # zlecenie odbędzie się w przyszłym etapie w pierwszym cyklu
-                c = 2
-            return c
+                e = 2
         else:
-            c = 1
-        return c
+            e = 1
+        return e
 
     def down_arrow(self, poziom):
-        if self.aktualny_cykl == 1:
+        if self.aktualny_etap == 1:
             if self.aktualny_poziom >= poziom:
                 # zlecenie odbędzie się w aktualnym etapie
-                c = 0
+                e = 0
             else:
                 # zlecenie odbędzie się w przyszłym etapie w drugim cyklu
-                c = 2
+                e = 2
         else:
-            c = 1
-        return c
+            e = 1
+        return e
 
+    # panel wewnętrzny windy
+    def panel(self):
+        print("Panel wewnętrzny windy")
+        if self.aktualny_etap == 0:
+            floor = self.aktualny_poziom + 1
+            ceiling = 10
+        else:
+            floor = 0
+            ceiling = self.aktualny_poziom - 1
+        cel = random.randint(floor, ceiling)
+        print(f"Pasażer chce jechać na piętro {cel}")
+        # pasażer wybiera cel
+        self.cykl_celow[0][cel] = 1
+        
     def generator_kolejki(self):
-        for i in range(len(self.etap)):
-            for pietro in self.etap[i]:
-                if self.etap[i][pietro] > 0:
+        for i in range(len(self.cykl)):
+            for pietro in self.cykl[i]:
+                if self.cykl[i][pietro] > 0:
                     if i == 1:
-                        c = self.down_arrow(pietro)
+                        e = self.down_arrow(pietro)
                     else:
-                        c = self.up_arrow(pietro)
-                    # print(f"Zlecenie na piętro {pietro} zostanie zrealizowane w cyklu {c}")
-                    self.kolejka[c].append(pietro)
+                        e = self.up_arrow(pietro)
+                    # Zlecenie na piętro {pietro} zostanie zrealizowane na etapie {e}
+                    self.panel()
+                    self.kolejka[e].append(pietro)
+                    self.kolejka[e] = sorted(self.kolejka[e])
                     # kasuj zgłoszenie
-                    self.etap[i][pietro] = 0
-                    # time.sleep(0.1)
-                else:
-                    pass
-                    # print(f"Brak zleceń na piętro {pietro}")
-                    # time.sleep(0.1)
+                    self.cykl[i][pietro] = 0
+        for i in range(len(self.cykl_celow)):
+            for pietro in self.cykl_celow[i]:
+                if self.cykl_celow[i][pietro] > 0:
+                    if i == 1:
+                        e = self.down_arrow(pietro)
+                    else:
+                        e = self.up_arrow(pietro)
+                    self.kolejka[e].append(pietro)
+                    self.kolejka[e] = sorted(self.kolejka[e])
+                    # kasuj zgłoszenie
+                    self.cykl_celow[i][pietro] = 0
+                
         print(self.kolejka)
 
     def ruch(self):
+        global osoby_na_pietrachlej
         self.generator_kolejki()
-        for i in self.kolejka[0]:
-            print(f"Winda na piętrze {self.aktualny_poziom}")
-            while self.aktualny_poziom != i:
-                if self.aktualny_cykl == 0:
+        while len(self.kolejka[0]) > 0:
+            self.generator_kolejki()
+            draw_elevator(self.aktualny_poziom, osoby_na_pietrach)
+            print(f"Winda stoi na piętrze {self.aktualny_poziom}")
+            while len(self.kolejka[0]) > 0 and self.aktualny_poziom != self.kolejka[0][0]:
+                if self.aktualny_etap == 0:
                     self.aktualny_poziom += 1
                 else:
                     self.aktualny_poziom -= 1
-                print(f"Winda na piętrze {self.aktualny_poziom}")
-                # pasażer wsiada
+                draw_elevator(self.aktualny_poziom, osoby_na_pietrach)
+                print(f"Winda na piętrze {self.aktualny_poziom}, jedzie w {['górę', 'dół'][self.aktualny_etap]}")
+            # pasażer wsiada
+            if len(osoby_na_pietrach[self.kolejka[0][0]]) > 0:
+                osoby_na_pietrach[self.kolejka[0][0]].remove(1)
+            self.kolejka[0].pop(0)
+            print(self.kolejka)
         self.kolejka = self.kolejka[1:]
-        # zmiana cyklu
-        self.aktualny_cykl = [0, 1][self.aktualny_cykl]
+        self.kolejka.append([])
+        # zmiana etapu
+        self.aktualny_etap = [1, 0][self.aktualny_etap]
 
-etap[0][3] = 1
-etap[0][4] = 1
-etap[0][8] = 1
-etap[1][3] = 1
-winda = Winda(etap)
-winda.ruch()
+class Pasazer():
+    def __init__(self, kierunek):
+        global osoby_na_pietrach
+        self.poziom = random.randint(0, 10)
+        self.kierunek = kierunek
+        cykl[self.kierunek][self.poziom] = 1
+        osoby_na_pietrach[self.poziom].append(1)
+        
+Pasazer(0)
+Pasazer(0)
+Pasazer(0)
+Pasazer(1)
+winda = Winda(cykl)
+for i in range(10):
+    winda.ruch()
+
+## CZEMU NIE ZABRAŁ 2 i kto jechal na dół
