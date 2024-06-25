@@ -12,7 +12,7 @@ class Winda(gym.Env):
         super(Winda, self).__init__()
         
         self.steps_done = 0
-        self.num_floors = 5
+        self.num_floors = 11
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Dict({
             "current_floor": spaces.Discrete(self.num_floors),
@@ -112,7 +112,7 @@ class Winda(gym.Env):
                 waiting_floors_list_normalized.append([1])
             else:
                 waiting_floors_list_normalized.append([])
-        if len(results) > 0 and (len(results) > 10400):
+        if len(results) > 0 and (len(results) > 1400):
             time_step = 0.3
         else:
             time_step = 0
@@ -120,7 +120,7 @@ class Winda(gym.Env):
         output = f"Winda znajduje się na piętrze {self.state['current_floor']}. "
         output += "Drzwi są otwarte. " if self.state['doors_open'] else "Drzwi są zamknięte. "
         output += f"Pasażerowie czekają na piętrach: {waiting_floors_list}."
-        if len(results) > 10400:
+        if len(results) > 1400:
             draw_elevator(self.state['current_floor'], waiting_floors_list_normalized, time_step)
             print(output)
             print(action, reward, epsilon)
@@ -155,7 +155,7 @@ gamma = 0.7
 env = Winda()
 # env.load_Q('q_table.pkl')  # Załaduj wcześniej zapisaną tabelę Q
 results = []
-ile_epizodow = 10405
+ile_epizodow = 1405
 epsilony = []
 for i in range(ile_epizodow):
     state = env.reset()

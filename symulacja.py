@@ -109,8 +109,8 @@ def generuj_trase(trasa, requesty, poziom):
     return nowa_trasa, requesty
 
 while True:
-    for _ in range(random.randint(1, 1)):
-        prob = random.randint(0, 9)
+    for _ in range(random.randint(1, 10)):
+        prob = random.randint(0, 7)
         if prob == 0:
             start = random.randint(0, 10)
             stop = random.randint(0, 10)

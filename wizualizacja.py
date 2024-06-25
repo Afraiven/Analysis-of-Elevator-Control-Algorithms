@@ -3,7 +3,7 @@ import pygame
 import os
 
 
-time_step = 0
+time_step = 0.3
 os.environ['SDL_VIDEO_WINDOW_POS'] = '100,100'
 
 # Pygame setup
