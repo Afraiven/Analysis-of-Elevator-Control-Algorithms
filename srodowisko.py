@@ -4,7 +4,7 @@ import os
 import sys
 
 
-time_step = 1
+time_step = 0.3
 os.environ['SDL_VIDEO_WINDOW_POS'] = '100,100'
 
 pygame.init()
@@ -21,7 +21,7 @@ def draw_multiline_text(surface, text, pos, font, color):
         surface.blit(line_surface, (x, y))
         y += line_spacing
 
-def draw_elevator(position, osoby_na_piętrach, ludzie_w_windzie):
+def draw_elevator(position, osoby_na_piętrach, ludzie_w_windzie, czy_stoi = False):
     for event in pygame.event.get():
         if event.type == pygame.QUIT: 
              sys.exit(0)
@@ -48,3 +48,5 @@ def draw_elevator(position, osoby_na_piętrach, ludzie_w_windzie):
 
     pygame.display.flip()
     time.sleep(time_step)
+    if czy_stoi:
+        time.sleep(time_step)

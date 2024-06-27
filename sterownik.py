@@ -24,6 +24,7 @@ class Winda:
         self.kolejka = [[],[], [], [], [], []]
         self.ludzie_wewnatrz = []
         self.tablica_celow = []
+        self.reset = False
 
     def up_arrow(self, poziom):
         if self.aktualny_etap == 0:
@@ -35,6 +36,13 @@ class Winda:
                 e = 2
         else:
             e = 1
+        if self.reset:
+            self.reset = False
+            e = 0
+            if self.aktualny_poziom < poziom:
+                self.aktualny_etap = 0
+            else:
+                self.aktualny_etap = 1
         return e
 
     def down_arrow(self, poziom):
@@ -47,11 +55,22 @@ class Winda:
                 e = 2
         else:
             e = 1
+        if self.reset:
+            self.reset = False
+            e = 0
+            if self.aktualny_poziom > poziom:
+                self.aktualny_etap = 1
+            else:
+                self.aktualny_etap = 0
         return e
 
     # panel wewnętrzny windy
     def panel(self, kierunek, pietro, e):
         # w górę
+        if pietro == 10:
+            kierunek = 1
+        elif pietro == 0:
+            kierunek = 0
         if kierunek%2 == 0:
             floor = pietro + 1
             ceiling = 10
@@ -63,7 +82,7 @@ class Winda:
         print(f"Pasażer chce jechać z {pietro} na {cel}")
         # pasażer wybiera cel
         self.cykl_celow[0][cel].append(e + 2)
-        self.tablica_celow.append([pietro, cel])
+        self.tablica_celow.append([pietro, cel, e])
         
     def generator_kolejki(self):
         for i in range(len(self.cykl)):
@@ -91,7 +110,6 @@ class Winda:
                 self.kolejka[i].sort()
             else:
                 self.kolejka[i].sort(reverse=True)
-        input(self.kolejka)
 
     def ruch(self):
         global osoby_na_pietrach
@@ -101,7 +119,10 @@ class Winda:
             self.generator_kolejki()
             draw_elevator(self.aktualny_poziom, osoby_na_pietrach, self.ludzie_wewnatrz)
             print(f"Winda stoi na piętrze {self.aktualny_poziom}")
+            # pasażer wsiada
+            print('Kolejka:', self.kolejka)
             while len(self.kolejka[0]) > 0 and self.aktualny_poziom != self.kolejka[0][0]:
+                print('Kolejka:', self.kolejka)
                 if self.aktualny_etap == 0:
                     self.aktualny_poziom += 1
                 else:
@@ -109,21 +130,30 @@ class Winda:
                 draw_elevator(self.aktualny_poziom, osoby_na_pietrach, self.ludzie_wewnatrz)
                 print(f"Winda na piętrze {self.aktualny_poziom}, jedzie w {['górę', 'dół'][self.aktualny_etap]}")
             # pasażer wsiada
-            if len(osoby_na_pietrach[self.kolejka[0][0]]) > 0:
-                osoby_na_pietrach[self.kolejka[0][0]].remove(1)
+            if len(osoby_na_pietrach[self.aktualny_poziom]) > 0:
+                osoby_na_pietrach[self.aktualny_poziom].remove(1)
+                targets_to_remove = []
                 for i in self.tablica_celow:
-                    if i[0] == self.aktualny_poziom:
-                        self.tablica_celow.remove(i)
-                        self.ludzie_wewnatrz.append(i[1])
-            else:
-                for i in self.ludzie_wewnatrz:
-                    if i == self.aktualny_poziom:
-                        self.ludzie_wewnatrz.remove(i)
+                    if i[0] == self.aktualny_poziom and (i[2] == 0 or len(set(self.kolejka[0])) == 1):
+                        targets_to_remove.append(i)
+                for target in targets_to_remove:
+                    self.tablica_celow.remove(target)
+                    self.ludzie_wewnatrz.append(target[1])
+
+            # ludzie wysiadają
+            self.ludzie_wewnatrz = [osoba for osoba in self.ludzie_wewnatrz if osoba != self.aktualny_poziom]
             self.kolejka[0].pop(0)
+        for i in self.tablica_celow:
+            i[2] -= 1
         self.kolejka = self.kolejka[1:]
         self.kolejka.append([])
+    
         # zmiana etapu
         self.aktualny_etap = [1, 0][self.aktualny_etap]
+
+        # Handle new passenger requests
+        if sum([len(x) for x in self.kolejka]) == 0:
+            self.reset = True
 
 class Pasazer():
     def __init__(self, kierunek):
@@ -141,4 +171,10 @@ Pasazer(1)
 Pasazer(1)
 winda = Winda(cykl)
 while True:
+    prob = random.randint(0, 10)
+    if prob == 0:
+        Pasazer(random.randint(0, 1))
     winda.ruch()
+
+
+# poprawić cykliczność etapów
