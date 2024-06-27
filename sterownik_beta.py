@@ -4,14 +4,10 @@ from srodowisko import draw_elevator
 # STEROWNIK ten wybiera za priorytet osobę pierwszą ktora sie zglosiła 
 # i jedzie do niej, a potem do kolejnych osób które się zgłosiły
 
-# charakteryzuję sie jednak tym że jesli winda jedzie juz w danym kierunku i na swojej 
-# dworze ma kogos kto tez chce jechac z tym keirunku pomimo że jest on dalej w kolejce
-# to zabierze go jako pierwszego
-
 # Koniec symulacji
 # Obsłużono pasażerów:  201
-# Czas:  275
-# Średni czas w windzie:  7.067961165048544
+# Czas:  288
+# Średni czas w windzie:  6.388349514563107
 
 class Winda:
     def __init__(self):
@@ -32,14 +28,15 @@ class Winda:
         if not self.pasazerowie_w_windzie and not self.zgloszenia:
             return  
         
-        pietra_cele = {p.cel for p in self.pasazerowie_w_windzie}
-        pietra_zgloszenia = {r.start for r in self.zgloszenia}
-        pietra_pasujace = pietra_cele | pietra_zgloszenia
-        
-        if self.kierunek == 0 and self.pietro >= max(pietra_pasujace, default=self.pietro):
-            self.kierunek = 1
-        elif self.kierunek == 1 and self.pietro <= min(pietra_pasujace, default=self.pietro):
-            self.kierunek = 0
+        # jesli winda ma pasazerów w srodku
+        if len(self.pasazerowie_w_windzie) > 0:
+            self.kierunek = self.pasazerowie_w_windzie[0].kierunek
+        else:
+            if len(self.zgloszenia) > 0:
+                if self.zgloszenia[0].start > self.pietro:
+                    self.kierunek = 0 
+                else:
+                    self.kierunek = 1
 
     def zabieraj_pasazerow(self):
         zabrani = 0
