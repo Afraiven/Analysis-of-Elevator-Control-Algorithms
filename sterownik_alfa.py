@@ -10,11 +10,11 @@ from metrics import summary, Pasazer
 # to zabierze go jako pierwszego
 
 # Koniec symulacji
-# Obsłużono pasażerów:  500
-# Czas [ilość pięter]:  611
-# Średni czas w windzie:  6.888
-# Średni czas oczekiwania na windę:  6.072
-# Średni czas podróży:  12.96
+# Obsłużono pasażerów:  100000
+# Czas [ilość pięter]:  109941
+# Średni czas w windzie:  6.97069
+# Średni czas oczekiwania na windę:  6.46927
+# Średni czas podróży:  13.43996
 
 class Winda:
     def __init__(self):
@@ -66,9 +66,11 @@ class Winda:
 
     def ruch(self):
         while self.zgloszenia or self.pasazerowie_w_windzie:
+            if len(self.historia)%1000 == 0:
+                print(len(self.historia))
             for _ in range(10):
                 X = random.randint(0, 10)
-                if X == 0 and len(self.historia) < 10000:
+                if X == 0 and len(self.historia) < 100000:
                     jacek = Pasazer()
                     self.dodaj_zgloszenie(jacek)
 
@@ -84,10 +86,10 @@ class Winda:
                 pasazer.licz_czas_w_windzie()
             for pasazer in self.zgloszenia:
                 pasazer.licz_czas_oczekiwania_na_winde()
-            print("Pietro: ", self.pietro, " Kierunek: ", "góra" if self.kierunek == 0 else "dół")
-            print("Pasazerowie w windzie: ", [(p.start, p.cel) for p in self.pasazerowie_w_windzie])
-            print("Zgloszenia: ", [(z.start, z.cel) for z in self.zgloszenia])
-            print("---" * 30)
+            # print("Pietro: ", self.pietro, " Kierunek: ", "góra" if self.kierunek == 0 else "dół")
+            # print("Pasazerowie w windzie: ", [(p.start, p.cel) for p in self.pasazerowie_w_windzie])
+            # print("Zgloszenia: ", [(z.start, z.cel) for z in self.zgloszenia])
+            # print("---" * 30)
             osoby_na_pietrach = [[] for i in range(11)]
             for zgloszenie in self.zgloszenia:
                 osoby_na_pietrach[zgloszenie.start].append(zgloszenie)

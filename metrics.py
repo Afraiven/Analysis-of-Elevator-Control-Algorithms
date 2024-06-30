@@ -2,8 +2,9 @@ import random
 from matplotlib import pyplot as plt
 import math
 import numpy as np
+import scipy.stats as stats
 
-def summary(historia, czas, czasy_pasazerow, czasy_oczekiwania_pasazerow):
+def summary(historia, czas, czasy_pasazerow, czasy_oczekiwania_pasazerow, rnorm=True):
     laczne_czasy = [x + y for x, y in zip(czasy_pasazerow, czasy_oczekiwania_pasazerow)]
     print("Koniec symulacji")
     print("Obsłużono pasażerów: ", len(historia))
@@ -11,12 +12,23 @@ def summary(historia, czas, czasy_pasazerow, czasy_oczekiwania_pasazerow):
     print("Średni czas w windzie: ", sum(czasy_pasazerow) / len(czasy_pasazerow))
     print("Średni czas oczekiwania na windę: ", sum(czasy_oczekiwania_pasazerow) / len(czasy_oczekiwania_pasazerow))
     print("Średni czas podróży: ", (sum(laczne_czasy)) / len(laczne_czasy))
-    bins_count = int(math.sqrt(len(laczne_czasy)))
-    bins = np.linspace(min(laczne_czasy), max(laczne_czasy), bins_count + 1)
-    plt.hist(laczne_czasy, bins=bins, color='blue', alpha=0.5, label='Czasy podróży [+oczekiwanie]')
-    plt.xlabel('Czas podróży')
-    plt.title("Czasy podróży")
-    plt.show()
+    if rnorm:
+        mu = np.mean(laczne_czasy)
+        variance = np.var(laczne_czasy)
+        sigma = math.sqrt(variance)
+        x = np.linspace(mu - 3*sigma, mu + 3*sigma, 1000)
+        pdf = stats.norm.pdf(x, mu, sigma)
+        plt.plot(x, pdf, label='Rozkład normalny', color='red')
+        plt.hist(laczne_czasy, bins=math.ceil(math.log2(len(laczne_czasy))+1), density=True, color='blue', alpha=0.5, label='Czasy podróży [+oczekiwanie]')
+        plt.title('Histogram czasów podróży [+oczekiwanie] pasażerów')
+        plt.xlabel('Wartości')
+        plt.ylabel('Gęstość')
+        plt.legend()
+        plt.show()
+    else:        
+        plt.hist(laczne_czasy, bins=math.ceil(math.log2(len(laczne_czasy))+1), density=True, color='blue', alpha=0.5, label='Czasy podróży [+oczekiwanie]')
+        plt.title('Histogram czasów podróży [+oczekiwanie] pasażerów')
+        plt.show()
 
 
 class Pasazer:
