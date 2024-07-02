@@ -4,6 +4,7 @@ from collections import deque
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from srodowisko import draw_elevator
 from tensorflow.keras.optimizers import Adam
 import matplotlib.pyplot as plt
 from gymnasium import Env
@@ -119,6 +120,10 @@ class AgentWinda(Env):
         return nowy_stan, reward, done, {}
 
     def render(self):
+        osoby_na_pietrach = [[] for i in range(4)]
+        for zgloszenie in self.zgloszenia:
+            osoby_na_pietrach[zgloszenie.start].append(zgloszenie)
+        draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], False)
         print("Winda na piętrze: ", self.pietro)
         print([[x.start, x.cel] for x in self.zgloszenia])
         print([[x.start, x.cel] for x in self.pasazerowie_w_windzie])
@@ -142,18 +147,12 @@ class Pasazer:
 
 input_shape = [8]
 n_outputs = 2
-replay_buffer = deque(maxlen=4000)
 batch_size = 32
 discount_factor = 0.9
 optimizer = Adam(learning_rate=1e-3)
 loss_fn = tf.keras.losses.MeanSquaredError()
-
-model = Sequential([
-    Dense(32, activation="elu", input_shape=input_shape),
-    Dense(32, activation="elu"),
-    Dense(16, activation="relu"),
-    Dense(n_outputs)
-])
+# Load .keras model
+model = tf.keras.models.load_model("model_at_episode_1000.keras")
 
 def epsilon_greedy_policy(state, epsilon=0):
     if np.random.rand() < epsilon:
@@ -162,36 +161,10 @@ def epsilon_greedy_policy(state, epsilon=0):
         Q_values = model.predict(state[np.newaxis], verbose=0)
         return np.argmax(Q_values[0])
 
-def sample_experiences(batch_size):
-    indices = np.random.randint(len(replay_buffer), size=batch_size)
-    batch = [replay_buffer[index] for index in indices]
-    states, actions, rewards, next_states, dones = [
-        np.array([experience[field_index] for experience in batch])
-        for field_index in range(5)
-    ]
-    return states, actions, rewards, next_states, dones
-
 def play_one_step(env, state, epsilon):
     action = epsilon_greedy_policy(state, epsilon)
     next_state, reward, done, _ = env.step(action)
-    replay_buffer.append((state, action, reward, next_state, done))
     return next_state, reward, done
-
-def training_step(batch_size):
-    experiences = sample_experiences(batch_size)
-    states, actions, rewards, next_states, dones = experiences
-    next_Q_values = model.predict(next_states)
-    max_next_Q_values = np.max(next_Q_values, axis=1)
-    target_Q_values = (rewards +
-                       (1 - dones) * discount_factor * max_next_Q_values)
-    mask = tf.one_hot(actions, n_outputs)
-    with tf.GradientTape() as tape:
-        all_Q_values = model(states)
-        Q_values = tf.reduce_sum(all_Q_values * mask, axis=1, keepdims=True)
-        loss = tf.reduce_mean(loss_fn(target_Q_values, Q_values))
-    grads = tape.gradient(loss, model.trainable_variables)
-    clipped_grads = [tf.clip_by_value(grad, -1.0, 1.0) for grad in grads]
-    optimizer.apply_gradients(zip(clipped_grads, model.trainable_variables))
 
 rewards = []
 np.random.seed(42)
@@ -199,34 +172,15 @@ random.seed(42)
 tf.random.set_seed(42)
 best_score = 0
 
-for episode in range(1100):
-    print(f"Episode: {episode}, len(replay_buffer): {len(replay_buffer)}")
+for episode in range(10):
     env = AgentWinda()
     obs = env.reset()
     total_reward = 0
     for step in range(200):
-        if episode == 200 or episode == 700 or episode >= 1000:
-            env.render()
-            input("Press Enter to continue...")
-        epsilon = max(1 - episode / 1000, 0.01)
+        env.render()
+        epsilon = 0
         obs, reward, done = play_one_step(env, obs, epsilon)
         total_reward += reward
         if done:
+            env.render()
             break
-    print("Epsilon: ", epsilon)
-    print("Nagroda: ", total_reward, ",w", step," krokach")
-    rewards.append(total_reward)
-    if episode > 100:
-        training_step(batch_size)
-    if episode % 100 == 0:
-        model.save(f"model_at_episode_{episode}.keras")
-        plt.figure(figsize=(8, 4))
-        plt.plot(rewards)
-        plt.xlabel("Episode", fontsize=14)
-        plt.ylabel("Sum of rewards", fontsize=14)
-        plt.show()
-plt.figure(figsize=(8, 4))
-plt.plot(rewards)
-plt.xlabel("Episode", fontsize=14)
-plt.ylabel("Sum of rewards", fontsize=14)
-plt.show()
