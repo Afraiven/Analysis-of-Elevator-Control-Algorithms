@@ -3,20 +3,23 @@ import random
 from collections import deque
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout, BatchNormalization, Dense
 from tensorflow.keras.optimizers import Adam
 import matplotlib.pyplot as plt
 from gymnasium import Env
 from gymnasium.spaces import Discrete, Box, Tuple, MultiBinary
 import pygame
 
+from colorama import Fore, Back, Style, init
+
+floor_limit = 10
 class AgentWinda(Env):
     def __init__(self):
         super(AgentWinda, self).__init__()
-        self.pietro = random.randint(0, 3)
-        # 4 possible actions: 0=up, 1=down, 2=left, 3=right
+        self.pietro = random.randint(0, floor_limit)
+        # 2 possible actions: 0=up, 1=down
         self.action_space = Discrete(2)
-        self.state = MultiBinary(8)
+        self.state = MultiBinary((1+floor_limit)*2)
         self.pasazerowie_w_windzie = []
         self.zgloszenia = []
         self.historia = []
@@ -28,7 +31,7 @@ class AgentWinda(Env):
 
     def reset(self):
         # Inicjalizacja stanu początkowego
-        self.pietro = random.randint(0, 3)
+        self.pietro = random.randint(0, floor_limit)
         self.pasazerowie_w_windzie = []
         self.zgloszenia = []
         self.historia = []
@@ -36,8 +39,8 @@ class AgentWinda(Env):
         self.czasy_pasazerow = []
         self.czasy_oczekiwania_pasazerow = []
         self.obsłużeni_pasażerowie = 0
-        state = np.zeros(8, dtype=np.int32)
-        for i in range(5):
+        state = np.zeros((floor_limit+1)*2, dtype=np.int32)
+        for i in range(3):
             jacek = Pasazer()
             self.dodaj_zgloszenie(jacek)
         state[self.pietro] = 1
@@ -45,9 +48,10 @@ class AgentWinda(Env):
         zabrani = self.zabieraj_pasazerow()
         wysadzeni = self.wypuszczaj_pasazerow()
         for i in self.zgloszenia:
-            state[4+i.start] = 1
+            state[floor_limit + 1 + i.start] = 1
         for i in self.pasazerowie_w_windzie:
-            state[4+i.cel] = 1
+            state[floor_limit + 1 + i.cel] = 1
+
         
 
         self.state = state
@@ -80,7 +84,7 @@ class AgentWinda(Env):
         reward = 0
         # Move the agent based on the selected action
         if action == 0:  # Up
-            if self.pietro < 3:
+            if self.pietro < floor_limit:
                 self.pietro += 1
         elif action == 1:  # Down
             if self.pietro > 0:
@@ -98,16 +102,22 @@ class AgentWinda(Env):
         wysadzeni = self.wypuszczaj_pasazerow()
 
         # Obliczanie nagrody
-        reward -= 0.015 * sum([zgloszenie.czas_oczekiwania_na_winde for zgloszenie in self.zgloszenia])
-        reward -= 0.005 * sum([pasazer.czas_w_windzie for pasazer in self.pasazerowie_w_windzie])
-            
+        r2 = len(self.zgloszenia)
+        l2 = len(self.pasazerowie_w_windzie)
+        # reward -= 0.15 * (r2)
+        # reward -= 0.05 * (l2)
+        # reward -= sum([x.czas_oczekiwania_na_winde for x in self.zgloszenia]) * 0.0015
+        # reward -= sum([x.czas_w_windzie for x in self.pasazerowie_w_windzie]) * 0.0005
+        reward = -1*self.czas
+
         # Nowy stan
-        nowy_stan = np.zeros(8, dtype=np.int32)
+        nowy_stan = np.zeros(2*(1+floor_limit), dtype=np.int32)
         nowy_stan[self.pietro] = 1
         for i in self.zgloszenia:
-            nowy_stan[4+i.start] = 1
+            nowy_stan[floor_limit + 1 + i.start] = 1
         for i in self.pasazerowie_w_windzie:
-            nowy_stan[4+i.cel] = 1
+            nowy_stan[floor_limit + 1 + i.cel] = 1
+
 
         self.state = nowy_stan
         if (len(self.zgloszenia) + len(self.pasazerowie_w_windzie)) == 0:
@@ -126,10 +136,10 @@ class AgentWinda(Env):
     
 class Pasazer:
     def __init__(self):
-        self.start = random.randint(0, 3)
-        self.cel = random.randint(0, 3)
+        self.start = random.randint(0, floor_limit)
+        self.cel = random.randint(0, floor_limit)
         while self.start == self.cel:
-            self.cel = random.randint(0, 3)
+            self.cel = random.randint(0, floor_limit)
         self.kierunek = 0 if self.start < self.cel else 1
         self.czas_w_windzie = 0
         self.czas_oczekiwania_na_winde = 0
@@ -139,21 +149,30 @@ class Pasazer:
 
     def licz_czas_oczekiwania_na_winde(self):
         self.czas_oczekiwania_na_winde += 1
+init()
 
-input_shape = [8]
+input_shape = [(floor_limit+1)*2]
 n_outputs = 2
-replay_buffer = deque(maxlen=4000)
+replay_buffer = deque(maxlen=20000)
+
 batch_size = 32
 discount_factor = 0.9
 optimizer = Adam(learning_rate=1e-3)
 loss_fn = tf.keras.losses.MeanSquaredError()
 
 model = Sequential([
-    Dense(32, activation="elu", input_shape=input_shape),
-    Dense(32, activation="elu"),
-    Dense(16, activation="relu"),
+    Dense(64, activation="elu", input_shape=input_shape),
+    BatchNormalization(),
+    Dropout(0.3),
+    Dense(64, activation="elu"),
+    BatchNormalization(),
+    Dropout(0.3),
+    Dense(32, activation="relu"),
+    BatchNormalization(),
+    Dropout(0.3),
     Dense(n_outputs)
 ])
+
 
 def epsilon_greedy_policy(state, epsilon=0):
     if np.random.rand() < epsilon:
@@ -199,27 +218,31 @@ random.seed(42)
 tf.random.set_seed(42)
 best_score = 0
 
-for episode in range(1100):
-    print(f"Episode: {episode}, len(replay_buffer): {len(replay_buffer)}")
+for episode in range(2001):
+    print(f"{Fore.GREEN}Episode: {episode}, len(replay_buffer): {len(replay_buffer)}{Fore.RESET}")
     env = AgentWinda()
     obs = env.reset()
     total_reward = 0
-    for step in range(200):
-        if episode == 200 or episode == 700 or episode >= 1000:
+    for step in range(100):
+        if episode == 1950:
             env.render()
             input("Press Enter to continue...")
-        epsilon = max(1 - episode / 1000, 0.01)
+        epsilon = max(1 - episode / 1900, 0.01)
         obs, reward, done = play_one_step(env, obs, epsilon)
         total_reward += reward
         if done:
             break
     print("Epsilon: ", epsilon)
-    print("Nagroda: ", total_reward, ",w", step," krokach")
+    if total_reward > -3:
+        kolor = Fore.YELLOW
+    else:
+        kolor = Fore.RED
+    print(f"Nagroda: {kolor}", total_reward, f"{Fore.RESET},w", step," krokach")
     rewards.append(total_reward)
     if episode > 100:
         training_step(batch_size)
-    if episode % 100 == 0:
-        model.save(f"model_at_episode_{episode}.keras")
+    if episode % 100 == 0 and episode > 100:
+        model.save(f"model_mv10_at_episode_{episode}.keras")
         plt.figure(figsize=(8, 4))
         plt.plot(rewards)
         plt.xlabel("Episode", fontsize=14)

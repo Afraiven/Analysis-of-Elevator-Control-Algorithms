@@ -15,7 +15,7 @@ class AgentWinda(Env):
     def __init__(self):
         super(AgentWinda, self).__init__()
         self.pietro = random.randint(0, 3)
-        # 4 possible actions: 0=up, 1=down, 2=left, 3=right
+        # 2 possible actions: 0=up, 1=down
         self.action_space = Discrete(2)
         self.state = MultiBinary(8)
         self.pasazerowie_w_windzie = []
