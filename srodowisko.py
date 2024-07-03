@@ -48,7 +48,7 @@ def draw_elevator(position, osoby_na_piętrach, ludzie_w_windzie, czy_stoi=False
     # Draw elevator door lines
     pygame.draw.line(screen, (100, 100, 100), (150, elevator_y), (150, elevator_y + 50), 2)
     
-    multi_line_text = f"Floor: {position}\nDestinations: {ludzie_w_windzie}\nCount: {len(ludzie_w_windzie)}"
+    multi_line_text = f"Piętro: {position}\nCele: {ludzie_w_windzie}\nIlość pasażerów: {len(ludzie_w_windzie)}"
     text_x = 10
     text_y = 10
     draw_multiline_text(screen, multi_line_text, (text_x, text_y), font, (0, 255, 0))

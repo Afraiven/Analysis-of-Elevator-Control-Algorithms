@@ -71,8 +71,6 @@ class Winda:
 
     def ruch(self):
         while self.zgloszenia or self.pasazerowie_w_windzie:
-            if len(self.historia) >94730:
-                print(len(self.historia), len(self.zgloszenia),len(self.pasazerowie_w_windzie))
             for _ in range(10):
                 X = random.randint(0, 10)
                 if X == 0 and len(self.historia) < 100000:

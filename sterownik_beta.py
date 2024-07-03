@@ -97,7 +97,7 @@ class Winda:
             for zgloszenie in self.zgloszenia:
                 osoby_na_pietrach[zgloszenie.start].append(zgloszenie)
             # print("Zgłoszenia: ", [[x[0].start, x[0].cel] for x in self.zgloszenia])
-            draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
+            # draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
         summary(self.historia, self.czas, self.czasy_pasazerow, self.czasy_oczekiwania_pasazerow)
 
 
