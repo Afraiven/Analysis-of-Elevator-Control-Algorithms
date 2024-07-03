@@ -2,26 +2,24 @@ import random
 from srodowisko import draw_elevator
 from metrics import summary, Pasazer
 
-# Priorytet Kolejności Zgłoszeń
-# STEROWNIK ten wybiera za priorytet osobę pierwszą ktora sie zglosiła 
-# i jedzie do niej, a potem do kolejnych osób które się zgłosiły
-
-# Algorytm obsługuje pasażerów w kolejności zgłoszeń (FIFO).
-# Winda jedzie najpierw do osoby, która zgłosiła się jako pierwsza.
-# Kierunek windy jest ustalany na podstawie kierunku pasażerów w windzie lub pierwszego zgłoszenia. 
-# Pasażerowie są zabierani i wysadzani zgodnie z kierunkiem windy.
+# Priorytet najbliższego zgłoszenia
+# Algorytm priorytetyzuje najbliższe zgłoszenie,
+# minimalizując odległość do najbliższego pasażera lub celu.
+# Kierunek windy jest ustalany na podstawie najbliższego zgłoszenia 
+# lub celu pasażerów w windzie. Winda najpierw zabiera pasażerów,
+# którzy chcą wsiąść na bieżącym piętrze, a następnie wysadza pasażerów na ich docelowych piętrach.
+# Algorytm dynamicznie reaguje na nowe zgłoszenia, stale aktualizując trasę windy.
 
 # Koniec symulacji
 # Obsłużono pasażerów:  100000
-# Czas [ilość pięter]:  109941
-# Średni czas w windzie:  7.01099
-# Średni czas oczekiwania na windę:  7.88387
-# Średni czas podróży:  14.89486
+# Czas [ilość pięter]:  110378
+# Średni czas w windzie:  6.85558
+# Średni czas oczekiwania na windę:  8.2083
+# Średni czas podróży:  15.06388
 
 class Winda:
     def __init__(self):
-        # 0 - góra, 1 - dół
-        self.kierunek = 0  
+        self.kierunek = 0
         self.pietro = 0
         self.pasazerowie_w_windzie = []
         self.zgloszenia = []
@@ -34,19 +32,23 @@ class Winda:
         self.historia.append(pasazer)
         self.zgloszenia.append(pasazer)
 
-    def zarzadzaj_kierunkiem(self):
-        if not self.pasazerowie_w_windzie and not self.zgloszenia:
-            return  
-        
-        # jesli winda ma pasazerów w srodku
-        if len(self.pasazerowie_w_windzie) > 0:
-            self.kierunek = self.pasazerowie_w_windzie[0].kierunek
+    def znajdz_najblizsze_zgloszenie(self):
+        if self.pasazerowie_w_windzie:
+            najblizsze_zgloszenie = min(self.pasazerowie_w_windzie, key=lambda x: abs(self.pietro - x.cel))
+            return najblizsze_zgloszenie
+        elif self.zgloszenia:
+            najblizsze_zgloszenie = min(self.zgloszenia, key=lambda x: abs(self.pietro - x.start))
+            return najblizsze_zgloszenie
         else:
-            if len(self.zgloszenia) > 0:
-                if self.zgloszenia[0].start > self.pietro:
-                    self.kierunek = 0 
-                else:
-                    self.kierunek = 1
+            return None
+
+    def zarzadzaj_kierunkiem(self):
+        najblizsze_zgloszenie = self.znajdz_najblizsze_zgloszenie()
+        if najblizsze_zgloszenie:
+            if self.pasazerowie_w_windzie:
+                self.kierunek = 0 if najblizsze_zgloszenie.cel > self.pietro else 1
+            else:
+                self.kierunek = 0 if najblizsze_zgloszenie.start > self.pietro else 1
 
     def zabieraj_pasazerow(self):
         zabrani = 0
@@ -69,8 +71,8 @@ class Winda:
 
     def ruch(self):
         while self.zgloszenia or self.pasazerowie_w_windzie:
-            if len(self.historia)%1000 == 0:
-                print(len(self.historia))
+            if len(self.historia) >94730:
+                print(len(self.historia), len(self.zgloszenia),len(self.pasazerowie_w_windzie))
             for _ in range(10):
                 X = random.randint(0, 10)
                 if X == 0 and len(self.historia) < 100000:
@@ -89,19 +91,13 @@ class Winda:
                 pasazer.licz_czas_w_windzie()
             for pasazer in self.zgloszenia:
                 pasazer.licz_czas_oczekiwania_na_winde()
-            # print("Pietro: ", self.pietro, " Kierunek: ", "góra" if self.kierunek == 0 else "dół")
-            # print("Pasazerowie w windzie: ", [(p.start, p.cel) for p in self.pasazerowie_w_windzie])
-            # print("Zgloszenia: ", [(z.start, z.cel) for z in self.zgloszenia])
-            # print("---" * 30)
-            osoby_na_pietrach = [[] for i in range(11)]
+            osoby_na_pietrach = [[] for _ in range(11)]
             for zgloszenie in self.zgloszenia:
                 osoby_na_pietrach[zgloszenie.start].append(zgloszenie)
-            # print("Zgłoszenia: ", [[x[0].start, x[0].cel] for x in self.zgloszenia])
-            draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
+            # draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
         summary(self.historia, self.czas, self.czasy_pasazerow, self.czasy_oczekiwania_pasazerow)
 
-
-random.seed(42)
+random.seed(43)
 winda = Winda()
 for i in range(5):
     winda.dodaj_zgloszenie(Pasazer())

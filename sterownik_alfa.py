@@ -2,12 +2,19 @@ import random
 from srodowisko import draw_elevator
 from metrics import summary, Pasazer
 
+#Priorytet Pierwszego Zgłoszenia
 # STEROWNIK ten wybiera za priorytet osobę pierwszą ktora sie zglosiła 
 # i jedzie do niej, a potem do kolejnych osób które się zgłosiły
 
 # charakteryzuję sie jednak tym że jesli winda jedzie juz w danym kierunku i na swojej 
 # dworze ma kogos kto tez chce jechac z tym keirunku pomimo że jest on dalej w kolejce
 # to zabierze go jako pierwszego
+
+# Algorytm obsługuje pasażerów w kolejności zgłoszeń (FIFO). 
+# Winda jedzie najpierw do osoby, która zgłosiła się jako pierwsza.
+# Jeśli winda jedzie w określonym kierunku, zabiera pasażerów w tym samym kierunku,
+# nawet jeśli zgłosili się później. Kierunek jazdy jest zmieniany,
+# gdy winda osiągnie skrajne piętro z zapotrzebowaniem.
 
 # Koniec symulacji
 # Obsłużono pasażerów:  100000
@@ -94,7 +101,7 @@ class Winda:
             for zgloszenie in self.zgloszenia:
                 osoby_na_pietrach[zgloszenie.start].append(zgloszenie)
             # print("Zgłoszenia: ", [[x[0].start, x[0].cel] for x in self.zgloszenia])
-            draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
+            # draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
         summary(self.historia, self.czas, self.czasy_pasazerow, self.czasy_oczekiwania_pasazerow)
 
 
