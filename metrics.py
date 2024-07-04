@@ -34,6 +34,7 @@ def summary(historia, czas, czasy_pasazerow, czasy_oczekiwania_pasazerow, rnorm=
         plt.show()
 
 
+# Jacek
 class Pasazer:
     def __init__(self):
         self.start = random.randint(0, 10)
@@ -49,3 +50,26 @@ class Pasazer:
 
     def licz_czas_oczekiwania_na_winde(self):
         self.czas_oczekiwania_na_winde += 1
+
+
+# Ola
+class Pasazer_Ola:
+    def __init__(self, start, cel, kierunek):
+        self.start = start
+        self.cel = cel
+        self.kierunek = kierunek
+        self.czas_w_windzie = 0
+        self.czas_oczekiwania_na_winde = 0
+    
+    def licz_czas_w_windzie(self):
+        self.czas_w_windzie += 1
+
+    def licz_czas_oczekiwania_na_winde(self):
+        self.czas_oczekiwania_na_winde += 1
+
+def normal_or_odd():
+    x = random.randint(0, 15)
+    if x == 0:
+        return 0
+    else:
+        return 1
