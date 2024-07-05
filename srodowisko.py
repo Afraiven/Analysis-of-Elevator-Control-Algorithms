@@ -3,7 +3,7 @@ import pygame
 import os
 import sys
 
-time_step = 0.3
+time_step = 0.1
 os.environ['SDL_VIDEO_WINDOW_POS'] = '30,30'
 
 pygame.init()

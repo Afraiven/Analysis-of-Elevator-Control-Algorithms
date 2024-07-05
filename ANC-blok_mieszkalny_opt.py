@@ -2,7 +2,8 @@ import random
 from srodowisko import draw_elevator
 from metrics import summary, normal_or_odd, Pasazer_Ola
 import numpy as np
-
+np.random.seed(43)
+random.seed(43)
 # Priorytet najbliższego zgłoszenia
 # Algorytm priorytetyzuje najbliższe zgłoszenie,
 # minimalizując odległość do najbliższego pasażera lub celu.
@@ -10,6 +11,8 @@ import numpy as np
 # lub celu pasażerów w windzie. Winda najpierw zabiera pasażerów,
 # którzy chcą wsiąść na bieżącym piętrze, a następnie wysadza pasażerów na ich docelowych piętrach.
 # Algorytm dynamicznie reaguje na nowe zgłoszenia, stale aktualizując trasę windy.
+
+# winda będzie priorytetyzowała zgłoszenia, nawet gdy będą dalej o 1. jeśli ich waga bedzie wieksza
 
 # Koniec symulacji
 # Obsłużono pasażerów:  100000
@@ -29,35 +32,88 @@ class Winda:
         self.czasy_pasazerow = []
         self.czasy_oczekiwania_pasazerow = []
         self.pojemnosc = 6
+        self.miejsce_postoju = 0
 
+    def licz_wage_w_windzie(self, n):
+        # ilu ludzi w windzie chce na piętro n
+        waga_pas_winda = sum([1 for i in self.pasazerowie_w_windzie if i.cel == n])
+        return waga_pas_winda
+
+    def licz_wage_zgloszen(self, n):
+        # ilu ludzi na zewnątrz chce z piętra n
+        waga_zgloszen = sum([1 for i in self.zgloszenia if i.start == n])
+        return waga_zgloszen
+    
     def dodaj_zgloszenie(self, pasazer):
         self.historia.append(pasazer)
         self.zgloszenia.append(pasazer)
 
     def znajdz_najblizsze_zgloszenie(self):
+        maksymalna_waga = 0
+        maksymalne = []
         najblizsze_zgloszenie_a = None
         najblizsze_zgloszenie_b = None
+        scenario = None
+
+        # Znajdź najbliższe zgłoszenie pasażerów w windzie
         if self.pasazerowie_w_windzie:
             najblizsze_zgloszenie_a = min(self.pasazerowie_w_windzie, key=lambda x: abs(self.pietro - x.cel))
+
+        # Znajdź najbliższe zgłoszenie oczekujące
         if self.zgloszenia and len(self.pasazerowie_w_windzie) < 6:
             najblizsze_zgloszenie_b = min(self.zgloszenia, key=lambda x: abs(self.pietro - x.start))
+
+        # Określ, które zgłoszenie jest bliższe
         if najblizsze_zgloszenie_a:
             if najblizsze_zgloszenie_b:
-                return najblizsze_zgloszenie_a.cel if abs(self.pietro - najblizsze_zgloszenie_a.cel) < abs(self.pietro - najblizsze_zgloszenie_b.start) else najblizsze_zgloszenie_b.start
+                if abs(self.pietro - najblizsze_zgloszenie_a.cel) < abs(self.pietro - najblizsze_zgloszenie_b.start):
+                    res = najblizsze_zgloszenie_a
+                    scenario = "a"
+                else:
+                    res = najblizsze_zgloszenie_b
+                    scenario = "b"
             else:
-                return najblizsze_zgloszenie_a.cel
+                res = najblizsze_zgloszenie_a
+                scenario = "a"
         else:
             if najblizsze_zgloszenie_b:
-                return najblizsze_zgloszenie_b.start
+                res = najblizsze_zgloszenie_b
+                scenario = "b"
             else:
                 return None
-            
+
+        # Wybierz zgłoszenie na podstawie maksymalnej wagi
+        if scenario == "a":
+            for i in self.pasazerowie_w_windzie:
+                waga = self.licz_wage_w_windzie(i.cel)
+                if waga > maksymalna_waga:
+                    maksymalna_waga = waga
+                    maksymalne = [i.cel]
+                elif waga == maksymalna_waga:
+                    maksymalne.append(i.cel)
+            if maksymalna_waga > self.licz_wage_w_windzie(res.cel):
+                for i in maksymalne:
+                    if abs(self.pietro - i) - 2 <= abs(self.pietro - res.cel):
+                        return i
+        elif scenario == "b":
+            for i in self.zgloszenia:
+                waga = self.licz_wage_zgloszen(i.start)
+                if waga > maksymalna_waga:
+                    maksymalna_waga = waga
+                    maksymalne = [i.start]
+                elif waga == maksymalna_waga:
+                    maksymalne.append(i.start)
+            if maksymalna_waga > self.licz_wage_zgloszen(res.start):
+                for i in maksymalne:
+                    if abs(self.pietro - i) - 2 <= abs(self.pietro - res.start):
+                        return i
+        return res.cel if scenario == "a" else res.start
 
     def zarzadzaj_kierunkiem(self):
         najblizsze_zgloszenie = self.znajdz_najblizsze_zgloszenie()
         if najblizsze_zgloszenie is not None:
             self.kierunek = 0 if najblizsze_zgloszenie > self.pietro else 1
-            
+
     def zabieraj_pasazerow(self):
         zabrani = 0
         if len(self.pasazerowie_w_windzie) == self.pojemnosc:
@@ -109,8 +165,8 @@ class Winda:
                     for _ in range(self.prob()):
                         ola = Pasazer_Ola(start, cel, kierunek)
                         self.dodaj_zgloszenie(ola)
-            if self.czas % 10000 == 0:
-                print(self.czas)
+            # if self.czas % 10000 == 0:
+                # print(self.czas)
             zabrani = self.zabieraj_pasazerow()
             wysadzeni = self.wypuszczaj_pasazerow()
             self.zarzadzaj_kierunkiem()
@@ -118,6 +174,12 @@ class Winda:
                 self.pietro += 1
             elif self.kierunek == 1 and self.pietro > 0 and len(self.pasazerowie_w_windzie) + len(self.zgloszenia) > 0:
                 self.pietro -= 1
+            # gdy stoi, jedz na miejsce postoju
+            else:
+                if self.pietro > self.miejsce_postoju:
+                    self.pietro -= 1
+                elif self.pietro < self.miejsce_postoju:
+                    self.pietro += 1
             self.czas += 1
             for pasazer in self.pasazerowie_w_windzie:
                 pasazer.licz_czas_w_windzie()
@@ -128,8 +190,7 @@ class Winda:
                 osoby_na_pietrach[zgloszenie.start].append(zgloszenie)
             # draw_elevator(self.pietro, osoby_na_pietrach, [x.cel for x in self.pasazerowie_w_windzie], wysadzeni + zabrani > 0)
         summary(self.historia, self.czas, self.czasy_pasazerow, self.czasy_oczekiwania_pasazerow)
-    
-random.seed(43)
+
 winda = Winda()
 for i in range(1):
     winda.dodaj_zgloszenie(Pasazer_Ola(10, 0, 1))

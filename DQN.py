@@ -226,7 +226,6 @@ for episode in range(2001):
     for step in range(100):
         if episode == 1950:
             env.render()
-            input("Press Enter to continue...")
         epsilon = max(1 - episode / 1900, 0.01)
         obs, reward, done = play_one_step(env, obs, epsilon)
         total_reward += reward
